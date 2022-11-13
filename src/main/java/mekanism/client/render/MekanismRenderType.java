@@ -89,15 +89,6 @@ public class MekanismRenderType extends RenderType {
                 .createCompositeState(false)
     );
 
-    public static final RenderType MEKASUIT = create("mekasuit", DefaultVertexFormat.NEW_ENTITY, Mode.QUADS, 131_072, true, false,
-          RenderType.CompositeState.builder()
-                .setShaderState(MekanismShaders.MEKASUIT.shard)
-                .setTextureState(BLOCK_SHEET)
-                .setLightmapState(LIGHTMAP)
-                .setOverlayState(OVERLAY)
-                .createCompositeState(true)
-    );
-
     public static final Function<ResourceLocation, RenderType> SPS = Util.memoize(resourceLocation -> {
         RenderType.CompositeState state = RenderType.CompositeState.builder()
               .setShaderState(MekanismShaders.SPS.shard)

@@ -123,85 +123,11 @@ public class MekaSuitArmor implements ICustomArmor {
 
     public void renderArm(HumanoidModel<? extends LivingEntity> baseModel, @NotNull PoseStack matrix, @NotNull MultiBufferSource renderer, int light, int overlayLight,
           LivingEntity entity, ItemStack stack, boolean rightHand) {
-        ModelPos armPos = rightHand ? ModelPos.RIGHT_ARM : ModelPos.LEFT_ARM;
-        ArmorQuads armorQuads = cache.getUnchecked(key(entity));
-        boolean hasOpaqueArm = armorQuads.opaqueQuads().containsKey(armPos);
-        boolean hasTransparentArm = armorQuads.transparentQuads().containsKey(armPos);
-        if (hasOpaqueArm || hasTransparentArm) {
-            matrix.pushPose();
-            armPos.translate(baseModel, matrix, entity);
-            PoseStack.Pose last = matrix.last();
-            if (hasOpaqueArm) {
-                VertexConsumer builder = ItemRenderer.getFoilBufferDirect(renderer, MekanismRenderType.MEKASUIT, false, stack.hasFoil());
-                putQuads(armorQuads.opaqueQuads().get(armPos), builder, last, light, overlayLight, getColor(stack));
-            }
-            if (hasTransparentArm) {
-                VertexConsumer builder = ItemRenderer.getFoilBufferDirect(renderer, RenderType.entityTranslucent(TextureAtlas.LOCATION_BLOCKS), false, stack.hasFoil());
-                putQuads(armorQuads.transparentQuads().get(armPos), builder, last, light, overlayLight, Color.WHITE);
-            }
-            matrix.popPose();
-        }
     }
 
     @Override
     public void render(HumanoidModel<? extends LivingEntity> baseModel, @NotNull PoseStack matrix, @NotNull MultiBufferSource renderer,
           int light, int overlayLight, float partialTicks, boolean hasEffect, LivingEntity entity, ItemStack stack) {
-        if (baseModel.young) {
-            matrix.pushPose();
-            float f1 = 1.0F / baseModel.babyBodyScale;
-            matrix.scale(f1, f1, f1);
-            matrix.translate(0.0D, baseModel.bodyYOffset / 16.0F, 0.0D);
-            renderMekaSuit(baseModel, matrix, renderer, light, overlayLight, getColor(stack), partialTicks, hasEffect, entity);
-            matrix.popPose();
-        } else {
-            renderMekaSuit(baseModel, matrix, renderer, light, overlayLight, getColor(stack), partialTicks, hasEffect, entity);
-        }
-    }
-
-    private void renderMekaSuit(HumanoidModel<? extends LivingEntity> baseModel, @NotNull PoseStack matrix, @NotNull MultiBufferSource renderer,
-          int light, int overlayLight, Color color, float partialTicks, boolean hasEffect, LivingEntity entity) {
-        ArmorQuads armorQuads = cache.getUnchecked(key(entity));
-        render(baseModel, renderer, matrix, light, overlayLight, color, hasEffect, entity, armorQuads.opaqueQuads(), false);
-
-        if (type == EquipmentSlot.CHEST) {
-            BoltRenderer boltRenderer = boltRenderMap.computeIfAbsent(entity.getUUID(), id -> new BoltRenderer());
-            if (MekanismAPI.getModuleHelper().isEnabled(entity.getItemBySlot(EquipmentSlot.CHEST), MekanismModules.GRAVITATIONAL_MODULATING_UNIT)) {
-                BoltEffect leftBolt = new BoltEffect(BoltRenderInfo.ELECTRICITY, new Vec3(-0.01, 0.35, 0.37), new Vec3(-0.01, 0.15, 0.37), 10)
-                      .size(0.012F).lifespan(6).spawn(SpawnFunction.noise(3, 1));
-                BoltEffect rightBolt = new BoltEffect(BoltRenderInfo.ELECTRICITY, new Vec3(0.025, 0.35, 0.37), new Vec3(0.025, 0.15, 0.37), 10)
-                      .size(0.012F).lifespan(6).spawn(SpawnFunction.noise(3, 1));
-                boltRenderer.update(0, leftBolt, partialTicks);
-                boltRenderer.update(1, rightBolt, partialTicks);
-            }
-            //Adjust the matrix so that we render the lightning in the correct spot if the player is crouching
-            matrix.pushPose();
-            ModelPos.BODY.translate(baseModel, matrix, entity);
-            boltRenderer.render(partialTicks, matrix, renderer);
-            matrix.popPose();
-        }
-
-        //Pass white as the color because we don't want to tint transparent quads
-        render(baseModel, renderer, matrix, light, overlayLight, Color.WHITE, hasEffect, entity, armorQuads.transparentQuads(), true);
-    }
-
-    private void render(HumanoidModel<? extends LivingEntity> baseModel, MultiBufferSource renderer, PoseStack matrix, int light, int overlayLight,
-          Color color, boolean hasEffect, LivingEntity entity, Map<ModelPos, List<BakedQuad>> quadMap, boolean transparent) {
-        if (!quadMap.isEmpty()) {
-            RenderType renderType = transparent ? RenderType.entityTranslucent(TextureAtlas.LOCATION_BLOCKS) : MekanismRenderType.MEKASUIT;
-            VertexConsumer builder = ItemRenderer.getFoilBufferDirect(renderer, renderType, false, hasEffect);
-            for (Map.Entry<ModelPos, List<BakedQuad>> entry : quadMap.entrySet()) {
-                matrix.pushPose();
-                entry.getKey().translate(baseModel, matrix, entity);
-                putQuads(entry.getValue(), builder, matrix.last(), light, overlayLight, color);
-                matrix.popPose();
-            }
-        }
-    }
-
-    private void putQuads(List<BakedQuad> quads, VertexConsumer builder, PoseStack.Pose pose, int light, int overlayLight, Color color) {
-        for (BakedQuad quad : quads) {
-            builder.putBulkData(pose, quad, color.rf(), color.gf(), color.bf(), color.af(), light, overlayLight, false);
-        }
     }
 
     private static List<BakedQuad> getQuads(MekanismModelData data, Set<String> parts, Set<String> ledParts, @Nullable QuadTransformation transform) {
